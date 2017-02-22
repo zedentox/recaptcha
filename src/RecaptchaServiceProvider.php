@@ -25,8 +25,6 @@ class RecaptchaServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->addValidator();
-
         $this->loadViewsFrom(__DIR__ . '/views', 'recaptcha');
     }
 
@@ -35,16 +33,18 @@ class RecaptchaServiceProvider extends ServiceProvider
      */
     public function addValidator()
     {
-        $translator = app('translator');
-        $translator->addNamespace('recaptcha', __DIR__ . '/lang');
-        $translator->load('recaptcha', 'recaptcha', $translator->locale());
+        $this->app->resolving('validator', function ($validator) {
+            $translator = app('translator');
+            $translator->addNamespace('recaptcha', __DIR__ . '/lang');
+            $translator->load('recaptcha', 'recaptcha', $translator->locale());
 
-        $this->app->validator->extendImplicit('recaptcha', function ($attribute, $value, $parameters) {
-            $captcha   = app('recaptcha.service');
-            $challenge = app('request')->input($captcha->getResponseKey());
+            $this->app->validator->extendImplicit('recaptcha', function ($attribute, $value, $parameters) {
+                $captcha   = app('recaptcha.service');
+                $challenge = app('request')->input($captcha->getResponseKey());
 
-            return $captcha->check($challenge, $value);
-        }, $translator->get('recaptcha::recaptcha.error'));
+                return $captcha->check($challenge, $value);
+            }, $translator->get('recaptcha::recaptcha.error'));
+        });
     }
 
     /**
@@ -56,6 +56,7 @@ class RecaptchaServiceProvider extends ServiceProvider
     {
         $this->bindRecaptcha();
         $this->handleConfig();
+        $this->addValidator();
     }
 
     protected function bindRecaptcha()
